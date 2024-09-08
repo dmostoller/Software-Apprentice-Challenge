@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Card from './Card';
-import SummaryBarChart from './SummaryBarChart';
+import SummaryCard from './SummaryBarChart';
 
 const Dashboard = () => {
   const [ads, setAds] = useState([]);
   const [searchVal, setSearchVal] = useState('');
   const [sortOrder, setSortOrder] = useState(null);
+  const [sortedAds, setSortedAds] = useState([...ads]);
 
   useEffect(() => {
     const fetchAds = async () => {
@@ -76,7 +77,7 @@ const Dashboard = () => {
                 ad.utm_medium === result.utm_medium &&
                 ad.utm_content === result.utm_content
               ) {
-                ad.results = result.results;
+                ad.results = ad.results += result.results;
               }
             });
           });
@@ -95,15 +96,27 @@ const Dashboard = () => {
     setSearchVal(e.target.value);
   }, []);
 
-  const handleSort = useCallback((order) => {
-    setSortOrder(order);
-    const sortedAds = [...ads].sort((a, b) => {
-      return order === 'asc' ? a.spend - b.spend : b.spend - a.spend;
-    });
-    setAds(sortedAds);
-  }, [ads, setSortOrder]);
+  const handleSort = (order) => {
+    setSortOrder(() => order);
+  };
 
-  const filteredAds = ads.filter(ad => 
+  const handleClearSort = () => {
+    setSortedAds(([]) => [...ads]);
+    setSortOrder(() => null);
+  };
+
+  useEffect(() => {
+    if (sortOrder === null) {
+      setSortedAds([...ads]);
+    } else {
+      const sortedAds = [...ads].sort((a, b) => {
+        return sortOrder === 'asc' ? a.spend - b.spend : b.spend - a.spend;
+      });
+      setSortedAds(sortedAds);
+    }
+  }, [ads, sortOrder]);
+
+  const filteredAds = sortedAds.filter(ad => 
     ad.campaign.toLowerCase().includes(searchVal.toLowerCase())
   );
 
@@ -112,18 +125,18 @@ const Dashboard = () => {
   const maxResults = Math.max(...ads.map(ad => ad.results));
 
   const summaryData = [
-    { name: 'Spend', value: ads.reduce((acc, ad) => acc + ad.spend, 0) },
-    { name: 'Impressions', value: ads.reduce((acc, ad) => acc + ad.impressions, 0) },
-    { name: 'Clicks', value: ads.reduce((acc, ad) => acc + ad.clicks, 0) },
-    { name: 'Results', value: ads.reduce((acc, ad) => acc + ad.results, 0) }
+    { name: 'Spend', value: filteredAds.reduce((acc, ad) => acc + ad.spend, 0) },
+    { name: 'Impressions', value: filteredAds.reduce((acc, ad) => acc + ad.impressions, 0) },
+    { name: 'Clicks', value: filteredAds.reduce((acc, ad) => acc + ad.clicks, 0) },
+    { name: 'Results', value: filteredAds.reduce((acc, ad) => acc + ad.results, 0) }
   ];
 
 
   return (
     <div className="container mx-auto p-4 bg-gray-900 text-gray-100">
-      <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <div>
+        <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
           <input 
             type="text" 
             placeholder="Search by campaign name" 
@@ -145,14 +158,14 @@ const Dashboard = () => {
               Sort by Spend Descending
             </button>
             <button 
-              onClick={() => setSortOrder(null)} 
+              onClick={handleClearSort} 
               className="bg-gray-600 text-white px-4 py-2 rounded"
             >
               Clear Sort
             </button>
           </div>
         </div>
-        <SummaryBarChart data={summaryData} />
+        <SummaryCard data={summaryData} />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredAds.map((ad, index) => (
