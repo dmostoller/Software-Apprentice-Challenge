@@ -3,7 +3,7 @@ import Dashboard from './components/Dashboard';
 
 const App = () => {
   return (
-    <div className="App bg-gray-900">
+    <div className="App">
       <Dashboard />
     </div>
   );
